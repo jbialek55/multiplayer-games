@@ -1,0 +1,877 @@
+/* ==========================================================================
+   Multiplayer Platform — "game table" theme
+   Idea: a felt game table (the page) with cream scorecards/tickets sitting on
+   top of it. Hard, short offset shadows instead of soft blur (like a physical
+   chip or tile), a slab display face for headings, monospace for anything
+   that reads like a scoreboard. One accent per "player" (teal / rust), gold
+   reserved for calls-to-wait and highlights.
+   ========================================================================== */
+
+:root {
+  --bg: #17332b;
+  --bg-soft: #1d3d33;
+  --surface: #f7f0dc;
+  --surface-strong: #fffbf1;
+  --surface-hover: #ecdfb9;
+  --border: #d9c9a0;
+  --border-strong: #b39c6c;
+  --text: #202b20;
+  --muted: #5c6b57;
+  --faint: #8b9784;
+
+  --accent: #2c7a8c; /* player one — teal */
+  --accent-2: #c1502f; /* player two — rust */
+  --gold: #d79f3d; /* ticket gold — waiting / highlight */
+  --success: #4f9153;
+  --danger: #bb3d34;
+  --warning: #c08a2e;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow: 4px 4px 0 rgba(32, 43, 32, 0.16);
+  --shadow-sm: 3px 3px 0 rgba(32, 43, 32, 0.12);
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Rockwell", "Sitka Small", Georgia, "Segoe UI", serif;
+  --mono: "Consolas", "Courier New", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--surface);
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at top, var(--bg-soft), var(--bg) 70%);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+/* ---------------------------------------------------------------- header */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand__mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--gold);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #241a05;
+  transform: rotate(-4deg);
+}
+
+.brand__name {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--surface-strong);
+}
+.brand__name span {
+  color: var(--gold);
+}
+
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid rgba(247, 240, 220, 0.18);
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--faint);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.connection::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+
+.connection.offline::before {
+  background: var(--danger);
+}
+
+/* ----------------------------------------------------------- generic card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.card__pad {
+  padding: 22px;
+}
+
+.headline {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--surface-strong);
+}
+
+.subheadline {
+  margin: 0 0 20px;
+  color: var(--faint);
+  font-size: 15px;
+  max-width: 46ch;
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  border-bottom: 2px solid rgba(215, 159, 61, 0.4);
+  padding-bottom: 3px;
+  margin: 26px 0 12px;
+}
+
+/* --------------------------------------------------------------- buttons */
+.btn {
+  --btn-bg: var(--surface-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--btn-bg);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(32, 43, 32, 0.14);
+  transition: background 0.15s, border-color 0.15s, transform 0.08s, box-shadow 0.08s;
+}
+
+.btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+  color: rgba(59, 131, 85, 1)
+}
+
+.btn--danger {
+  background: rgba(187, 61, 52, 0.08);
+  border-color: rgba(187, 61, 52, 0.4);
+  color: var(--danger);
+}
+
+
+.btn--sm {
+  padding: 8px 13px;
+  font-size: 13px;
+}
+
+.field {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.field .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------- inputs */
+.input {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  transition: border-color 0.15s;
+}
+
+.input::placeholder {
+  color: var(--faint);
+  font-family: var(--font);
+  letter-spacing: normal;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* --------------------------------------------------------------- banner */
+.banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--gold);
+  background: rgba(215, 159, 61, 0.14);
+  color: var(--surface-strong);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.banner.show {
+  display: flex;
+}
+
+.banner--error {
+  border-left-color: var(--danger);
+  background: rgba(187, 61, 52, 0.14);
+  color: #ffd9d5;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* -------------------------------------------------------------- room list */
+.room-list {
+  display: grid;
+  gap: 8px;
+}
+
+.room {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.room:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.room__name {
+  font-weight: 650;
+  font-size: 14px;
+  color:#2c7a8c
+}
+.room__meta {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-family: var(--mono);
+}
+.room__cta {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.empty {
+  padding: 30px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* --------------------------------------------------------- room-ready card
+   Styled like a ticket stub — the one place this design spends its "boldness"
+   token (notched corners + dashed tear line before the actions). */
+.roomcard {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  clip-path: polygon(
+    14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%,
+    0 100%, 0 14px
+  );
+}
+.roomcard.show {
+  display: flex;
+}
+.roomcard__info {
+  flex: 1;
+  min-width: 200px;
+}
+.roomcard__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.roomcard__id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  min-width: 0;
+}
+.roomcard__code {
+  font-family: var(--mono);
+  font-size: clamp(17px, 4.5vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.roomcard__hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.roomcard__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-left: 18px;
+  border-left: 1px dashed var(--border-strong);
+}
+.waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold);
+  font-size: 13px;
+}
+.waiting::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: blink 1.3s infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ----------------------------------------------------------- game picker */
+.game-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.game-pick {
+  padding: 14px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(32, 43, 32, 0.1);
+  transition: border-color 0.15s, background 0.15s, transform 0.08s, box-shadow 0.08s;
+}
+.game-pick:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.game-pick:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.game-pick.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: none;
+}
+@media (max-width: 480px) {
+  .game-picker {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- game */
+.gamerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid rgba(247, 240, 220, 0.18);
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--faint);
+}
+.chip strong {
+  color: var(--surface-strong);
+}
+.chip--accent {
+  border-color: var(--gold);
+  color: var(--surface-strong);
+}
+
+.board-stage {
+  display: flex;
+  justify-content: center;
+  padding: 20px 4px 6px;
+}
+#board {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* tic-tac-toe board */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 92px);
+  gap: 10px;
+}
+.cell {
+  width: 92px;
+  height: 92px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(32, 43, 32, 0.08);
+  transition: border-color 0.15s, background 0.15s;
+}
+.cell:not(:disabled):hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.cell:disabled {
+  cursor: default;
+}
+.cell.pop {
+  animation: place 0.24s ease;
+}
+@keyframes place {
+  from {
+    transform: scale(0.7);
+    opacity: 0.3;
+  }
+}
+.cell.x,
+.cell .x {
+  color: var(--accent);
+}
+.cell.o,
+.cell .o {
+  color: var(--accent-2);
+}
+
+.result {
+  margin: 8px 0 22px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  min-height: 1.4em;
+  color: var(--text);
+}
+.result.win {
+  color: var(--success);
+}
+.result.lose {
+  color: var(--danger);
+}
+.result.draw {
+  color: var(--warning);
+}
+.turn-line {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 6px 0 18px;
+}
+
+/* --------------------------------------------------------------- chess */
+.chess {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1;
+  padding: 8px;
+  background: var(--surface-strong);
+  border-radius: 10px;
+  border: 2px solid var(--border-strong);
+}
+.sq {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border: none;
+  font-size: clamp(18px, 4.5vw, 30px);
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.sq.light {
+  background: #f0e6c8;
+}
+.sq.dark {
+  background: #6b4428;
+}
+.sq.w {
+  color: #ffffff;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.85);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+.sq.b {
+  color: #120c06;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.75),
+    0 1px 1px rgba(255, 255, 255, 0.5);
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.4));
+}
+.sq:hover {
+  filter: brightness(1.06);
+}
+.sq.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+.sq.target {
+  background: var(--accent-2);
+}
+.sq.lastmove {
+  box-shadow: inset 0 0 0 3px rgba(44, 122, 140, 0.7);
+}
+
+/* ---------------------------------------------------------------- pong */
+.pong-canvas {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 620px);
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid var(--border-strong);
+}
+
+/* --------------------------------------------------------------- racing */
+.racing-canvas {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 700px);
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid var(--border-strong);
+}
+
+/* ---------------------------------------------------------------- snake */
+.snake-canvas {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 620px);
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid var(--border-strong);
+}
+
+/* ---------------------------------------------------------------- quiz */
+.quiz-board {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.quiz-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  min-width: 86px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  font-size: 12px;
+  color: var(--muted);
+}
+.quiz-player.me {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.quiz-player.active {
+  border-color: var(--gold);
+  background: var(--surface-hover);
+}
+.quiz-player.eliminated {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+.quiz-player .qp-name {
+  font-weight: 700;
+  color: var(--text);
+}
+.quiz-player .qp-score {
+  font-weight: 800;
+  font-size: 16px;
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.quiz-player .qp-lives {
+  letter-spacing: 0.12em;
+  color: var(--warning);
+}
+/* wrapper around the question card produced by the quiz renderer */
+.quiz-card {
+  padding: 4px 4px 0;
+}
+.quiz-cat {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(44, 122, 140, 0.12);
+  border: 1px solid rgba(44, 122, 140, 0.35);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.quiz-q {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 14px 0 18px;
+  text-align: center;
+  color: var(--text);
+}
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+}
+.quiz-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.quiz-opt:not(:disabled):hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.quiz-opt:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.quiz-letter {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  font-family: var(--mono);
+}
+.quiz-result {
+  margin: 12px 0;
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+}
+.quiz-result.win {
+  color: var(--success);
+}
+.quiz-result.lose {
+  color: var(--danger);
+}
+.quiz-result.draw {
+  color: var(--warning);
+}
+
+/* ---------------------------------------------------------------- toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%) translateY(20px);
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--surface-strong);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 50;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.copy-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--muted);
+  transition: 0.15s;
+}
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.copy-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell.pop {
+    animation: none;
+  }
+  .waiting::before {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .roomcard__actions {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px dashed var(--border-strong);
+    padding-top: 14px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 24px 14px 60px;
+  }
+  .board {
+    grid-template-columns: repeat(3, 72px);
+  }
+  .cell {
+    width: 72px;
+    height: 72px;
+    font-size: 36px;
+  }
+  .quiz-options {
+    grid-template-columns: 1fr;
+  }
+}

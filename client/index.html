@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0c1c" />
+    <title>Playground — multiplayer games</title>
+    <!-- Load the stylesheet as a blocking <link> instead of only via the JS
+         import inside main.ts. A JS-injected <style> tag only appears once
+         the module script has fetched and executed, so the browser paints
+         the bare, unstyled HTML for a frame first (FOUC). A <link> in <head>
+         is discovered by the browser immediately and blocks first paint. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+    <!-- Belt-and-braces: match the page's dark background before the
+         stylesheet even finishes downloading (slow connections, cache-miss),
+         so there's never a white flash behind it either. -->
+    <style>
+      html, body { background: #17332b; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand__mark">♟</div>
+          <div class="brand__name">Play<span>ground</span></div>
+        </div>
+        <div class="connection" id="status">connecting…</div>
+      </header>
+
+      <div class="banner" id="notice"></div>
+
+      <!-- ============================ LOBBY ============================ -->
+      <section id="lobby">
+        <h1 class="headline">Play with friends.</h1>
+        <p class="subheadline">
+          Jump into a game, create a room and share the code, or queue for a
+          quick match.
+        </p>
+
+        <div class="section-label">Choose a game</div>
+        <div class="game-picker" id="game-picker"></div>
+
+        <div class="actions">
+          <button class="btn btn--primary" id="find">Quick match</button>
+          <button class="btn" id="create">＋ New room</button>
+          <button class="btn btn--ghost" id="list">↻ Rooms</button>
+          <button class="btn btn--ghost" id="cancel">✕ Cancel match</button>
+        </div>
+
+        <div class="card" style="margin-top: 14px">
+          <div class="card__pad">
+            <div class="section-label" style="margin: 0 0 8px">Join with a code</div>
+            <div class="field">
+              <input class="input" id="join-code" placeholder="room code" autocomplete="off" />
+              <button class="btn btn--primary" id="join">Join</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-label">Your room</div>
+        <div class="card roomcard" id="roomcard">
+          <div class="roomcard__info">
+            <div class="roomcard__label">Share this code to invite a friend</div>
+            <div class="roomcard__id">
+              <span class="roomcard__code" id="lobby-code">········</span>
+              <button class="copy-btn" id="copy-room" title="Copy code">⧉</button>
+            </div>
+            <div class="roomcard__hint">
+              <span class="waiting" id="room-waiting">waiting for an opponent…</span>
+              <span id="room-meta"></span>
+            </div>
+          </div>
+          <div class="roomcard__actions">
+            <button class="btn btn--primary btn--sm" id="start">▶ Start game</button>
+            <button class="btn btn--ghost btn--sm" id="leave-lobby">Leave</button>
+          </div>
+        </div>
+
+        <div class="section-label">Open rooms</div>
+        <div class="card">
+          <div class="card__pad">
+            <div class="room-list" id="room-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= GAME ============================= -->
+      <section id="game" style="display: none">
+        <div class="gamerow">
+          <span class="chip"><strong id="my-symbol">—</strong>&nbsp;you</span>
+          <span class="chip chip--accent">room <strong id="room-id"></strong></span>
+        </div>
+
+        <div class="card">
+          <div class="board-stage">
+            <div id="board"></div>
+          </div>
+          <div class="result" id="result"></div>
+          <div class="turn-line" id="turn"></div>
+        </div>
+
+        <div class="actions" style="margin-top: 16px">
+          <button class="btn btn--primary" id="rematch" style="display: none">↻ Play again</button>
+          <button class="btn btn--ghost" id="leave">Leave room</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

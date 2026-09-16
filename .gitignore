@@ -1,0 +1,15 @@
+# Python
+server/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+server/mp.db
+server/mp.db-*
+
+# Node
+client/node_modules/
+client/dist/
+
+# Editor / OS
+.DS_Store
+*.swp
