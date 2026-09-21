@@ -276,6 +276,7 @@ class Platform:
             raise PlatformError(ErrorCode.INVALID_ACTION, "no active session for player")
 
         player.connected = True
+        player.disconnected_at = None
         self._cancel_forfeit(payload.player_id)
 
         # Notify peers that the opponent is back, then resync everyone.
@@ -545,6 +546,7 @@ class Platform:
         if player is None:
             return []
         player.connected = False
+        player.disconnected_at = time.monotonic()
         self.state.dequeue_player(player_id)
 
         room = self.state.rooms.get(player.current_room_id) if player.current_room_id else None
@@ -604,6 +606,63 @@ class Platform:
                 )
         finally:
             self._forfeit_tasks.pop(loser_id, None)
+
+    # ------------------------------------------------------------------ #
+    # Memory hygiene
+    # ------------------------------------------------------------------ #
+    async def run_sweeper(self) -> None:
+        """Background loop: periodically free players who never came back."""
+        while True:
+            await asyncio.sleep(self.settings.sweep_interval_seconds)
+            try:
+                self.sweep()
+            except Exception:  # a bug here must never kill the loop
+                log.exception("sweep failed")
+
+    def sweep(self, now: float | None = None) -> None:
+        """Forget players that dropped and stayed away past the reconnect window.
+
+        Without this, every connection that ever said hello stays in
+        ``state.players`` forever, and rooms whose players all vanished (an
+        abandoned quiz, a forfeited duel) keep counting against ``max_rooms``.
+        """
+        now = time.monotonic() if now is None else now
+        # + a little slack so forfeit timers (which fire at the grace) run first
+        cutoff = now - (self.settings.reconnect_grace_seconds + 5.0)
+        gone = [
+            p
+            for p in self.state.players.values()
+            if not p.connected and p.disconnected_at is not None and p.disconnected_at <= cutoff
+        ]
+        for player in gone:
+            self._forget_player(player)
+
+    def _forget_player(self, player) -> None:
+        self._cancel_forfeit(player.id)
+        self.state.dequeue_player(player.id)
+        room = self.state.rooms.get(player.current_room_id) if player.current_room_id else None
+        if room is not None:
+            if room.session_id is not None and any(self._is_connected(p) for p in room.players):
+                return  # a game is still running for others: try again next sweep
+            room.remove_player(player.id)
+            room.rematch_votes.discard(player.id)
+            if not room.players:
+                self._drop_room(room)
+        self.state.players.pop(player.id, None)
+
+    def _is_connected(self, player_id: str) -> bool:
+        p = self.state.players.get(player_id)
+        return p is not None and p.connected
+
+    def _drop_room(self, room) -> None:
+        """Remove an empty room together with any session/tick loop it still owns."""
+        if room.session_id is not None:
+            self.state.sessions.pop(room.session_id, None)
+            task = self._tick_tasks.pop(room.session_id, None)
+            if task is not None and not task.done():
+                task.cancel()
+            room.session_id = None
+        self.state.rooms.pop(room.id, None)
 
     def _cancel_forfeit(self, player_id: str) -> None:
         task = self._forfeit_tasks.pop(player_id, None)

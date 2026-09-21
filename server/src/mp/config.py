@@ -45,6 +45,10 @@ class Settings:
     # 0 => forfeit immediately; >0 => the opponent is told the player may return.
     reconnect_grace_seconds: float = 10.0
 
+    # How often (seconds) the server frees players who never came back, and
+    # the rooms/sessions only they were keeping alive.
+    sweep_interval_seconds: float = 30.0
+
     # SQLite path for completed-game history. None disables persistence
     # (used by tests); the production default is a local ``mp.db`` file.
     db_path: str | None = None

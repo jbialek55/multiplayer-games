@@ -16,3 +16,4 @@ class Player:
     addr: str
     current_room_id: str | None = None
     connected: bool = True
+    disconnected_at: float | None = None  # time.monotonic() of the last drop

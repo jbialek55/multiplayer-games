@@ -72,9 +72,11 @@ async def lifespan(app: FastAPI):
     app.state.registry = registry
     app.state.server_state = state
     app.state.store = store
+    sweeper = asyncio.create_task(platform.run_sweeper())
     try:
         yield
     finally:
+        sweeper.cancel()
         if store is not None:
             try:
                 await asyncio.to_thread(store.close)
