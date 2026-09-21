@@ -76,6 +76,55 @@ def test_elimination_when_lives_exhausted() -> None:
     assert "p1" not in s.snapshot()["alive"]
 
 
+def test_next_player_is_not_skipped_after_an_elimination() -> None:
+    s = QuizSession(["a", "b", "c"], lives=1)
+    s.start()
+    s.handle_input("a", {"answer": _correct_for(s)})
+    assert s.current == "b"
+    s.handle_input("b", {"answer": _wrong_for(s)})  # b's only life -> eliminated
+    assert "b" not in s.snapshot()["alive"]
+    assert s.current == "c"  # not "a": c is next in the round-robin
+
+
+def test_elimination_of_the_last_seat_wraps_to_the_first_player() -> None:
+    s = QuizSession(["a", "b", "c"], lives=1)
+    s.start()
+    s.handle_input("a", {"answer": _correct_for(s)})
+    s.handle_input("b", {"answer": _correct_for(s)})
+    s.handle_input("c", {"answer": _wrong_for(s)})
+    assert s.current == "a"
+
+
+def test_feedback_carries_the_answered_question_and_both_answers() -> None:
+    """After answering, the snapshot already shows the *next* question, so the
+    feedback has to carry the one that was just answered."""
+    s = make_session(["p1", "p2"])
+    s.start()
+    answered = s.pool[s.q_index]
+    wrong = _wrong_for(s)
+    s.handle_input("p1", {"answer": wrong})
+
+    snap = s.snapshot()
+    fb = snap["last_feedback"]
+    assert fb["player_id"] == "p1"
+    assert fb["answer"] == wrong
+    assert fb["correct_answer"] == answered["answer"]
+    assert fb["correct"] is False
+    assert fb["question"]["text"] == answered["text"]
+    assert fb["question"]["options"] == answered["options"]
+    assert snap["question"]["text"] != answered["text"]  # moved on
+    assert "answer" not in snap["question"]  # unanswered questions never leak the key
+
+
+def test_feedback_number_changes_with_every_answer() -> None:
+    s = make_session(["p1", "p2"])
+    s.start()
+    s.handle_input("p1", {"answer": _correct_for(s)})
+    first = s.snapshot()["last_feedback"]["n"]
+    s.handle_input("p2", {"answer": _correct_for(s)})
+    assert s.snapshot()["last_feedback"]["n"] != first
+
+
 def test_remove_player_continues_game() -> None:
     s = make_session(["p1", "p2", "p3"])
     s.start()

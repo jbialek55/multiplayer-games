@@ -59,6 +59,40 @@ def test_input_buffered_not_reversed() -> None:
     assert after[0] > before[0]  # kept moving right
 
 
+def test_quick_double_turn_is_not_collapsed_into_the_last_one() -> None:
+    """Facing right: 'up' then 'left' within one tick must give up, then left
+    (a swipe U-turn), not just 'left' which would be dropped as a reversal."""
+    s = SnakeSession(["a", "b"])
+    s.start()
+    s.countdown = 1
+    s.tick()  # running
+    s.handle_input("a", {"dir": "up"})
+    s.handle_input("a", {"dir": "left"})
+    x0, y0 = s.snapshot()["snakes"][0]["body"][0]
+    s.tick()
+    x1, y1 = s.snapshot()["snakes"][0]["body"][0]
+    assert (x1, y1) == (x0, y0 - 1)  # first turn: up
+    s.tick()
+    x2, y2 = s.snapshot()["snakes"][0]["body"][0]
+    assert (x2, y2) == (x1 - 1, y1)  # then left
+
+
+def test_turn_queue_is_bounded() -> None:
+    s = SnakeSession(["a", "b"])
+    s.start()
+    for d in ["up", "left", "down", "right", "up", "left"]:
+        s.handle_input("a", {"dir": d})
+    assert len(s.turns["a"]) == SnakeSession.MAX_QUEUED_TURNS
+
+
+def test_starting_snapshot_says_which_colour_each_player_is() -> None:
+    s = SnakeSession(["a", "b", "c"])
+    s.start()
+    snap = s.snapshot()
+    assert snap["symbols"] == {"a": 0, "b": 1, "c": 2}
+    assert snap["phase"] == "starting" and snap["countdown"] == 3
+
+
 def test_remove_player_last_standing_wins() -> None:
     s = SnakeSession(["a", "b"])
     s.start()

@@ -38,8 +38,6 @@ MAX_REVERSE = 9.0
 TURN_RATE = 2.6  # rad/sec
 BOUNCE = 0.3
 
-PALETTE = ("#3a6ea5", "#c0563f", "#b58a2f", "#4a8a53")
-
 
 @dataclass(frozen=True)
 class Car:

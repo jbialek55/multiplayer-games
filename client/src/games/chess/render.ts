@@ -3,7 +3,7 @@
 /// (from the authoritative `legal_moves`), and sends a move on click.
 /// Selection re-renders the board so the possible moves appear immediately.
 
-import type { GameSnapshot } from "../../protocol";
+import type { RenderCtx } from "../types";
 
 const GLYPH: Record<string, string> = {
   K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙",
@@ -11,12 +11,6 @@ const GLYPH: Record<string, string> = {
 };
 
 const FILES = "abcdefgh";
-
-interface Ctx {
-  snapshot: GameSnapshot;
-  me: string | null;
-  send: (action: Record<string, unknown>) => void;
-}
 
 // keep selection across re-renders (state updates)
 let selected: string | null = null;
@@ -30,7 +24,7 @@ function isWhitePiece(piece: string | null): boolean {
   return !!piece && piece === piece.toUpperCase();
 }
 
-export function renderChess(container: HTMLElement, ctx: Ctx): void {
+export function renderChess(container: HTMLElement, ctx: RenderCtx): void {
   const { snapshot, me, send } = ctx;
   const myColor = snapshot.symbols[me ?? ""] ?? null;
   const myTurn = !snapshot.finished && myColor === snapshot.turn;

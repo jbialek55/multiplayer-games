@@ -55,11 +55,15 @@ class QuizSession(GameSession):
             return None
         return self.alive[self.cursor % len(self.alive)]
 
+    @staticmethod
+    def _public(q: dict) -> dict:
+        """The part of a question that is safe to show *before* it is answered."""
+        return {"text": q["text"], "options": q["options"], "category": q["category"]}
+
     def _current_question(self) -> dict | None:
         if self.q_index >= len(self.pool):
             return None
-        q = self.pool[self.q_index]
-        return {"text": q["text"], "options": q["options"], "category": q["category"]}
+        return self._public(self.pool[self.q_index])
 
     # --- lifecycle --------------------------------------------------- #
     def start(self) -> list[GameEvent]:
@@ -127,21 +131,25 @@ class QuizSession(GameSession):
                 self.alive.remove(player_id)
                 eliminated = True
 
+        # Everything a client needs to show "you answered X, the right one was Y"
+        # after the snapshot has already moved on to the next question.
         self.last_feedback = {
+            "n": self.q_index,  # unique per answered question
             "player_id": player_id,
             "correct": correct,
             "answer": answer,
             "correct_answer": q["answer"],
             "eliminated": eliminated,
+            "question": self._public(q),
         }
 
-        self._advance()
+        self._advance(eliminated)
         events = [GameEvent(GameEvent.STATE, {"state": self.snapshot()})]
         if self.finished:
             events.append(GameEvent(GameEvent.OVER, {"state": self.snapshot(), "result": self.result()}))
         return events
 
-    def _advance(self) -> None:
+    def _advance(self, eliminated: bool) -> None:
         """Advance turn cursor and check for game end."""
         q = len(self.pool)
         if len(self.alive) == 1:
@@ -157,8 +165,12 @@ class QuizSession(GameSession):
             return
 
         self.q_index += 1
-        # advance cursor to the next alive player (skip over an eliminated one)
-        self.cursor = (self.cursor + 1) % len(self.alive)
+        if eliminated:
+            # The eliminated player was removed from ``alive``, so the next
+            # player already slid into this slot; stepping again would skip them.
+            self.cursor %= len(self.alive)
+        else:
+            self.cursor = (self.cursor + 1) % len(self.alive)
 
     def _decide_by_score(self) -> None:
         top = max((self.scores[pid] for pid in self.alive), default=0)
@@ -176,6 +188,7 @@ class QuizSession(GameSession):
             "current": self.current,
             "scores": dict(self.scores),
             "lives": dict(self.lives),
+            "lives_cap": self.lives_cap,
             "alive": list(self.alive),
             "players": list(self.player_ids),
             "finished": self.finished,

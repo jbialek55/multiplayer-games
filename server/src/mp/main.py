@@ -29,6 +29,7 @@ from mp.domain.service import Platform
 from mp.domain.state import ServerState
 from mp.games import build_default_registry
 from mp.protocol import messages
+from mp.protocol.errors import ErrorCode
 from mp.protocol.messages import Envelope, ErrorPayload, MessageType
 from mp.storage import Store
 from mp.transport.connection import Client
@@ -113,7 +114,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
                 # Size limit, checked before any parsing.
                 if len(raw) > settings.max_message_bytes:
-                    if await _strike(ws, settings, client, "oversized_message", "message too large"):
+                    if await _strike(ws, settings, client, ErrorCode.OVERSIZED_MESSAGE, "message too large"):
                         break
                     continue
 
@@ -121,19 +122,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 try:
                     env = _parse(raw)
                 except Exception:
-                    if await _strike(ws, settings, client, "malformed_message", "invalid JSON or envelope"):
+                    if await _strike(ws, settings, client, ErrorCode.MALFORMED_MESSAGE, "invalid JSON or envelope"):
                         break
                     continue
 
                 # A player may only handshake once per connection (rejoin uses a
                 # fresh connection, so it is allowed only when unbound).
                 if env.type == MessageType.HELLO.value and client.player_id is not None:
-                    await _send(ws, _error("invalid_action", "already bound", env.seq))
+                    await _send(ws, _error(ErrorCode.INVALID_ACTION, "already bound", env.seq))
                     continue
 
                 # Rate-limit state-changing commands (legal but too fast -> not a strike).
                 if env.type in _STATE_CHANGING and not client.limiter.allow():
-                    await _send(ws, _error("rate_limited", "too many commands", env.seq))
+                    await _send(ws, _error(ErrorCode.RATE_LIMITED, "too many commands", env.seq))
                     continue
 
                 deliveries = platform.handle(env, client.player_id)

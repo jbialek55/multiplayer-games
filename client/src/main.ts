@@ -1,9 +1,12 @@
 import { WsConnection } from "./net/ws";
-import { state, subscribe } from "./state";
+import { currentGameId, state } from "./state";
 import { STORAGE, type Envelope, type RoomInfo, type GameSnapshot } from "./protocol";
-import { GAME_RENDERERS, GAME_NAMES, QUICK_MATCH_GAMES, type RenderCtx } from "./games";
+import { GAME_RENDERERS, GAME_NAMES, QUICK_MATCH_GAMES, roleOf, type RenderCtx, type Role } from "./games";
 import { resetChess } from "./games/chess/render";
 import { resetBoard } from "./games/tictactoe/render";
+import { resetQuiz } from "./games/quiz/render";
+import { initInput, resetInput, setTouchMode } from "./input";
+import { renderHowTo } from "./howto";
 
 const conn = new WsConnection();
 
@@ -11,10 +14,6 @@ const conn = new WsConnection();
 // server rejects it (stale session after a restart/ended game), we fall back to
 // a fresh `hello` so the connection is never left unbound.
 let rejoinPending = false;
-
-// Last pong direction we told the server. We only send when it *changes*, so
-// OS key-repeat doesn't flood the connection with identical inputs.
-let lastPongDir = 0;
 
 // --- elements ---------------------------------------------------------------
 function byId(id: string): HTMLElement | null {
@@ -26,6 +25,7 @@ const noticeEl = byId("notice") as HTMLDivElement;
 const lobbyEl = byId("lobby") as HTMLElement;
 const gameEl = byId("game") as HTMLElement;
 const boardEl = byId("board") as HTMLDivElement;
+const gameHowToEl = byId("game-howto") as HTMLDetailsElement;
 const mySymEl = byId("my-symbol") as HTMLElement;
 const turnEl = byId("turn") as HTMLDivElement;
 const resultEl = byId("result") as HTMLDivElement;
@@ -63,46 +63,40 @@ function setNotice(text: string | null, isError = false): void {
   noticeEl.textContent = text ?? "";
 }
 
-function gameId(): string {
-  return state.room?.game_id ?? state.selectedGame;
-}
+const gameId = currentGameId;
 function myRole(snapshot: GameSnapshot): string | null {
   return snapshot.symbols?.[state.playerId ?? ""] ?? null;
 }
 
 // --- header / outcome -------------------------------------------------------
-function roleText(): string {
+function roleText(): Role {
   const s = state.snapshot;
-  if (!s) return "—";
-  if (gameId() === "snake" || gameId() === "racing") return "You";
-  const role = myRole(s);
-  return typeof role === "string" && role ? role : "you";
+  if (!s) return { label: "—" };
+  const role = roleOf(gameId(), s, state.playerId);
+  if (role) return role;
+  const symbol = myRole(s);
+  return { label: typeof symbol === "string" && symbol ? symbol : "you" };
 }
 
 function turnText(snapshot: GameSnapshot): string {
-  if (snapshot.finished) return "Game over";
   const gid = gameId();
-  if (gid === "quiz") {
-    return snapshot.current === state.playerId ? "Your turn" : "Waiting for opponent…";
-  }
+  if (gid === "quiz") return ""; // the quiz renderer draws its own turn line
+  if (snapshot.finished) return "Game over";
   if (gid === "chess") {
     return snapshot.turn === myRole(snapshot) ? "Your move" : "Opponent's move";
   }
-  if (gid === "pong") return "↑ ↓ move your paddle";
-  if (gid === "snake") {
-    if (snapshot.phase === "starting") return `Starting in ${snapshot.countdown}s…`;
-    return "↑ ↓ ← → steer your snake · eat food & survive";
+  if (gid === "pong") {
+    return snapshot.phase === "starting" ? "Get ready…" : "Drag your finger up and down to move your paddle";
   }
-  if (gid === "racing") {
-    if (snapshot.phase === "starting") return `Starting in ${snapshot.countdown}s…`;
-    return "W/↑ accelerate · S/↓ brake · A/D steer";
+  if (gid === "snake") {
+    return snapshot.phase === "starting" ? "Get ready…" : "Swipe on the board to steer · eat food & survive";
   }
   return snapshot.whos_turn === state.playerId ? "Your turn" : "Opponent's turn";
 }
 
 function didWin(r: { winner: string | null; draw: boolean }): boolean {
   if (r.draw) return false;
-  if (["chess", "pong", "snake", "racing"].includes(gameId())) return r.winner === state.playerId;
+  if (["chess", "pong", "snake"].includes(gameId())) return r.winner === state.playerId;
   // tic-tac-toe reports a symbol; quiz reports a player id
   return r.winner === myRole(state.snapshot ?? {});
 }
@@ -136,10 +130,6 @@ function render(): void {
     if (b) b.disabled = !bound;
   });
 
-  if (state.screen !== "game" || gameId() !== "pong") lastPongDir = 0;
-  if (state.screen !== "game" || gameId() !== "snake") lastSnakeDir = "";
-  if (state.screen !== "game" || gameId() !== "racing") racingPressed.clear();
-
   const room = state.room;
   if (room) {
     lobbyCodeEl.textContent = room.id;
@@ -156,7 +146,12 @@ function render(): void {
   if (state.screen === "game" && state.snapshot) {
     lobbyEl.style.display = "none";
     gameEl.style.display = "block";
-    mySymEl.textContent = roleText();
+    const role = roleText();
+    mySymEl.textContent = role.label;
+    mySymEl.classList.toggle("has-dot", Boolean(role.color));
+    if (role.color) mySymEl.style.setProperty("--dot", role.color);
+    setTouchMode(boardEl, gameId());
+    renderHowTo(gameHowToEl, gameId(), state.snapshot.phase === "starting");
     turnEl.textContent = turnText(state.snapshot);
     resultEl.textContent = outcomeText();
     resultEl.classList.remove("win", "lose", "draw");
@@ -265,6 +260,7 @@ function apply(message: Envelope): void {
       state.result = null;
       state.sessionId = null;
       state.screen = "lobby";
+      resetInput();
       clear(STORAGE.sessionId);
       setNotice(null);
       conn.send("list_rooms"); // refresh the lobby list now that we're back
@@ -282,6 +278,9 @@ function apply(message: Envelope): void {
       state.rematchVoted = false; // a new game resets the rematch votes
       resetBoard(); // fresh tic-tac-toe animation cache
       resetChess(); // clear any stale piece selection
+      resetQuiz(); // don't replay the last game's answer reveal
+      resetInput(); // a new paddle/snake: the first press must be sent
+      gameHowToEl.dataset.game = ""; // show the how-to open again for the new game
       setNotice(null);
       break;
     }
@@ -374,6 +373,14 @@ onClick("cancel", () => conn.send("cancel_match"));
 onClick("start", () => conn.send("start_game"));
 onClick("leave", () => conn.send("leave_room"));
 onClick("leave-lobby", () => conn.send("leave_room"));
+// The logo takes you back to the main screen. That means leaving the room, so
+// ask first if a game is still running.
+onClick("brand", () => {
+  if (state.screen !== "game") return;
+  const running = state.snapshot !== null && !state.snapshot.finished;
+  if (running && !window.confirm("Leave this game and go back to the main screen?")) return;
+  conn.send("leave_room");
+});
 onClick("rematch", () => {
   state.rematchVoted = true;
   conn.send("rematch");
@@ -396,114 +403,8 @@ onClick("copy-room", async () => {
   }
 });
 
-// --- realtime input (Pong) -------------------------------------------------
-// While in a live pong game, the arrow keys steer your paddle. We send the
-// held direction on keydown and clear it on keyup; the server applies it.
-function inPong(): boolean {
-  return (
-    gameId() === "pong" &&
-    state.screen === "game" &&
-    !!state.snapshot &&
-    !state.snapshot.finished &&
-    !!state.snapshot.symbols?.[state.playerId ?? ""]
-  );
-}
+// --- realtime input (Pong / Snake): keyboard, touch pads, swipes ------------
+initInput((action) => conn.send("game_action", { action }), boardEl);
 
-function inSnake(): boolean {
-  return (
-    gameId() === "snake" &&
-    state.screen === "game" &&
-    !!state.snapshot &&
-    !state.snapshot.finished
-  );
-}
-
-function inRacing(): boolean {
-  return (
-    gameId() === "racing" &&
-    state.screen === "game" &&
-    !!state.snapshot &&
-    !state.snapshot.finished
-  );
-}
-
-// --- racing keyboard input ----------------------------------------------
-const racingPressed = new Set<string>();
-function setRacingHeld(): void {
-  const accel = racingPressed.has("w") || racingPressed.has("arrowup");
-  const brake = racingPressed.has("s") || racingPressed.has("arrowdown");
-  const left = racingPressed.has("a") || racingPressed.has("arrowleft");
-  const right = racingPressed.has("d") || racingPressed.has("arrowright");
-  const cur = { accel, brake, left, right };
-  const prev = racingHeldSnapshot;
-  if (cur.accel === prev.accel && cur.brake === prev.brake && cur.left === prev.left && cur.right === prev.right) return;
-  racingHeldSnapshot = cur;
-  conn.send("game_action", { action: cur });
-}
-type RacingHeld = { accel: boolean; brake: boolean; left: boolean; right: boolean };
-let racingHeldSnapshot: RacingHeld = { accel: false, brake: false, left: false, right: false };
-
-function setPongDir(dir: number): void {
-  if (dir === lastPongDir) return; // unchanged → don't resend
-  lastPongDir = dir;
-  conn.send("game_action", { action: { dir } });
-}
-
-const SNAKE_DIRS: Record<string, string> = {
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
-};
-let lastSnakeDir = "";
-function setSnakeDir(dir: string): void {
-  if (dir === lastSnakeDir) return; // only send on change
-  lastSnakeDir = dir;
-  conn.send("game_action", { action: { dir } });
-}
-
-window.addEventListener("keydown", (e) => {
-  if (inPong()) {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setPongDir(-1);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setPongDir(1);
-    }
-    return;
-  }
-  if (inSnake()) {
-    const d = SNAKE_DIRS[e.key];
-    if (d) {
-      e.preventDefault();
-      setSnakeDir(d);
-    }
-    return;
-  }
-  if (inRacing()) {
-    const k = e.key.toLowerCase();
-    if ("wasd".includes(k) || e.key.startsWith("Arrow")) {
-      e.preventDefault();
-      racingPressed.add(k);
-      setRacingHeld();
-    }
-  }
-});
-window.addEventListener("keyup", (e) => {
-  if (inPong() && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-    setPongDir(0);
-    return;
-  }
-  if (inRacing()) {
-    const k = e.key.toLowerCase();
-    if (racingPressed.has(k)) {
-      racingPressed.delete(k);
-      setRacingHeld();
-    }
-  }
-});
-
-subscribe(render);
 render();
 conn.connect();

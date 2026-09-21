@@ -25,9 +25,6 @@ DIRS = {"up": UP, "down": DOWN, "left": LEFT, "right": RIGHT}
 OPPOSITE = {UP: DOWN, DOWN: UP, LEFT: RIGHT, RIGHT: LEFT}
 
 TARGET_FOOD = 3
-INITIAL_LENGTH = 3
-# classic palette indexed by a snake's ``color``
-PALETTE = ("#3a6ea5", "#c0563f", "#b58a2f", "#4a8a53")
 
 
 @dataclass(frozen=True)
@@ -97,7 +94,7 @@ def step(state: State) -> State:
 
     # 1) move each snake (buffer next_dir, but forbid instant reversal)
     moved: list[Snake] = []
-    for i, s in enumerate(state.snakes):
+    for s in state.snakes:
         if not s.alive:
             moved.append(s)
             continue
@@ -145,12 +142,7 @@ def step(state: State) -> State:
     winner = None
     final_round = False
     if len(still_alive) == 0:
-        # deterministic tie-break among all snakes: score, then length, then index
-        best = max(
-            range(len(moved)),
-            key=lambda i: (moved[i].score, len(moved[i].body), -i),
-        )
-        winner = moved[best].player_id
+        winner = tiebreak(tuple(moved))  # everyone died together
         final_round = True
     elif len(still_alive) == 1:
         winner = moved[still_alive[0]].player_id

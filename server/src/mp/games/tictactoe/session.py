@@ -8,8 +8,9 @@ platform to broadcast. No networking or platform imports here.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
 import random
+from typing import Any, Sequence
+
 from mp.games.base import Game, GameEvent, GameError, GameSession
 from mp.games.tictactoe.game import (
     O,
@@ -20,8 +21,13 @@ from mp.games.tictactoe.game import (
     new_state,
     winning_line,
 )
-# import logging
-# log = logging.getLogger("session")
+
+
+def _choose_x(player_ids: Sequence[str]) -> str:
+    """Pick who plays X (and so moves first). Its own function so tests can pin it."""
+    return random.choice(player_ids)
+
+
 class TicTacToeGame(Game):
     def __init__(self) -> None:
         super().__init__(id="tictactoe", name="Tic-Tac-Toe", min_players=2, max_players=2)
@@ -35,9 +41,9 @@ class TicTacToeSession(GameSession):
         super().__init__(game_id="tictactoe", player_ids=player_ids)
         if len(player_ids) != 2:
             raise GameError("tictactoe requires exactly 2 players")
-        # First player is X, second is O.
-        guess = random.randint(0,1)
-        self.symbols: dict[str, str] = {player_ids[guess]: X, player_ids[1-guess]: O}
+        x_player = _choose_x(player_ids)
+        o_player = next(pid for pid in player_ids if pid != x_player)
+        self.symbols: dict[str, str] = {x_player: X, o_player: O}
         self.state: State = new_state()
 
     # --- lifecycle --------------------------------------------------- #
@@ -47,7 +53,6 @@ class TicTacToeSession(GameSession):
 
     # --- gameplay ---------------------------------------------------- #
     def handle_input(self, player_id: str, action: dict[str, Any]) -> list[GameEvent]:
-        #log.info("WCHODZI: gracz=%s cell=%s", player_id, action.get("cell"))
         if not self.started:
             raise GameError("game not started")
         if self.is_finished() or self.state.is_finished:

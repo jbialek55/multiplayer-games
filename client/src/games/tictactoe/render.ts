@@ -1,18 +1,12 @@
 /// Tic-Tac-Toe board UI. Renders from a server snapshot and reports a cell
 /// intent. No rules live here. Styling is class-based (`.board`, `.cell`).
 
-import type { GameSnapshot } from "../../protocol";
-
-interface Ctx {
-  snapshot: GameSnapshot;
-  me: string | null;
-  send: (action: Record<string, unknown>) => void;
-}
+import type { RenderCtx } from "../types";
 
 // Track the previous board so only freshly-placed marks animate.
 let prevBoard: Array<string | null> | null = null;
 
-export function renderTicTacToe(container: HTMLElement, ctx: Ctx): void {
+export function renderTicTacToe(container: HTMLElement, ctx: RenderCtx): void {
   const { snapshot, me, send } = ctx;
   container.innerHTML = "";
 

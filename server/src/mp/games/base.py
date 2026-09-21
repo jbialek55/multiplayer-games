@@ -11,6 +11,7 @@ Dependency direction (preserved):
 
 from __future__ import annotations
 
+import math
 from typing import Sequence, Any
 
 
@@ -118,4 +119,49 @@ class GameSession:
         return []
 
     def on_player_reconnect(self, player_id: str) -> list[GameEvent]:
+        return []
+
+
+class CountdownSession(GameSession):
+    """A realtime session that opens with a frozen "starting" countdown.
+
+    Subclasses set ``TICKS_PER_SEC`` and ``COUNTDOWN_TICKS`` and call
+    ``tick_countdown()`` from ``tick()`` while ``phase == "starting"``. Once the
+    countdown runs out ``phase`` becomes ``RUN_PHASE``.
+
+    ``countdown`` counts *ticks* (so tests can shorten it); ``countdown_seconds``
+    is the whole-second number players see.
+    """
+
+    TICKS_PER_SEC: int
+    COUNTDOWN_TICKS: int
+    RUN_PHASE = "running"
+
+    def __init__(self, game_id: str, player_ids: Sequence[str]) -> None:
+        super().__init__(game_id, player_ids)
+        self.rate = 1 / self.TICKS_PER_SEC
+        self.begin_countdown()
+
+    @property
+    def countdown_seconds(self) -> int:
+        return max(0, math.ceil(self.countdown / self.TICKS_PER_SEC))
+
+    def begin_countdown(self) -> None:
+        """(Re)start the frozen countdown, e.g. before serving after a point."""
+        self.phase = "starting"
+        self.countdown = self.COUNTDOWN_TICKS
+
+    def tick_countdown(self) -> list[GameEvent]:
+        """Advance the countdown by one tick.
+
+        Emits a state event only when players would see something new (the
+        displayed second changed, or the game just started) so a 60 Hz game
+        does not broadcast 180 identical snapshots.
+        """
+        shown = self.countdown_seconds
+        self.countdown -= 1
+        if self.countdown <= 0:
+            self.phase = self.RUN_PHASE
+        if self.phase != "starting" or self.countdown_seconds != shown:
+            return [GameEvent(GameEvent.STATE, {"state": self.snapshot()})]
         return []

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any, Awaitable, Callable
 
 from mp.config import Settings
@@ -92,7 +93,7 @@ class Platform:
         the handshake). Returns the deliveries to send. Raises nothing --
         expected failures are converted into ``error`` deliveries.
         """
-        log.info("WCHODZI: %s od %s payload=%s", env.type, origin, env.payload)
+        log.debug("recv %s from %s", env.type, origin)
 
         payload_model = messages.CLIENT_TYPES.get(env.type)
         if payload_model is None:
@@ -405,7 +406,6 @@ class Platform:
             raise PlatformError(ErrorCode.INVALID_ACTION, "game not in progress")
 
         events = session.handle_input(origin, payload.action)
-        room.status = RoomStatus.PLAYING
         if session.is_finished():
             self._close_session(room.session_id, room, result=session.result())
         return self._events_to_deliveries(session, events)
@@ -463,24 +463,15 @@ class Platform:
             return
         while True:
             await asyncio.sleep(session.rate or 0.03)
-            if session.is_finished() or session not in list(self.state.sessions.values()):
+            if session.is_finished() or self.state.sessions.get(session_id) is not session:
                 break
             events = session.tick()
             for d in self._events_to_deliveries(session, events):
                 await self.deliver(d)
-            if session.is_finished():
-                if room is not None:
-                    room.status = RoomStatus.CLOSED
-                    room.session_id = None
-                self.state.sessions.pop(session_id, None)
-                if self.store is not None:
-                    asyncio.create_task(
-                        self._persist_game(
-                            room.game_id if room is not None else session.game_id,
-                            list(session.player_ids),
-                            session.result(),
-                        )
-                    )
+            # Re-check identity: a player may have left (and closed the session)
+            # while we were awaiting the deliveries above.
+            if session.is_finished() and self.state.sessions.get(session_id) is session:
+                self._close_session(session_id, room, result=session.result())
                 break
         self._tick_tasks.pop(session_id, None)
 
@@ -493,20 +484,24 @@ class Platform:
     def _close_session(self, session_id: str, room, result: dict | None = None) -> None:
         """Mark a session over: cancel its tick loop, drop it, and persist it."""
         session = self.state.sessions.get(session_id)
+        game_id = session.game_id if session is not None else room.game_id
         players = list(session.player_ids) if session is not None else list(room.players)
         outcome = (
             result
             if result is not None
             else (session.result() if session is not None else {})
         )
-        room.status = RoomStatus.CLOSED
-        room.session_id = None
+        if room is not None:
+            room.status = RoomStatus.CLOSED
+            room.session_id = None
         self.state.sessions.pop(session_id, None)
         task = self._tick_tasks.pop(session_id, None)
-        if task is not None and not task.done():
+        # The tick loop closes its own session when the game ends, so never
+        # cancel the task we are currently running in.
+        if task is not None and task is not asyncio.current_task() and not task.done():
             task.cancel()
         if self.store is not None and players:
-            asyncio.create_task(self._persist_game(room.game_id, players, outcome))
+            asyncio.create_task(self._persist_game(game_id, players, outcome))
 
     async def _persist_game(self, game_id: str, players: list[str], result: dict) -> None:
         """Write a finished game to the store off the event loop."""
@@ -646,6 +641,4 @@ async def _noop_deliver(delivery: Delivery) -> None:
 
 
 def _now_ms() -> int:
-    import time
-
     return int(time.time() * 1000)

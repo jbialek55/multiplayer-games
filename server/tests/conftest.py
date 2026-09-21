@@ -9,6 +9,12 @@ from mp.config import Settings
 from mp.main import create_app
 
 
+@pytest.fixture(autouse=True)
+def first_player_plays_x(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tic-Tac-Toe picks X at random in production; tests need it to be player one."""
+    monkeypatch.setattr("mp.games.tictactoe.session._choose_x", lambda player_ids: player_ids[0])
+
+
 def _client(settings: Settings) -> TestClient:
     return TestClient(create_app(settings))
 

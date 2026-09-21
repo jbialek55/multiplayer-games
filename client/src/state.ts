@@ -1,5 +1,5 @@
-/// Client-side app state + a tiny render trigger. The client only stores what
-/// the server told it; it never computes game outcomes.
+/// Client-side app state. The client only stores what the server told it; it
+/// never computes game outcomes. `main.ts` mutates this and calls `render()`.
 
 import type { GameResult, GameSnapshot, RoomInfo } from "./protocol";
 
@@ -9,13 +9,11 @@ export interface AppState {
   status: string;
   screen: Screen;
   playerId: string | null;
-  mySymbol: string | null;
   sessionId: string | null;
   room: RoomInfo | null;
   snapshot: GameSnapshot | null;
   result: GameResult | null;
   rooms: RoomInfo[];
-  notice: string | null; // transient banner (opponent disconnected, etc.)
   selectedGame: string;
   rematchVoted: boolean; // whether this player asked for a rematch
 }
@@ -24,26 +22,16 @@ export const state: AppState = {
   status: "connecting…",
   screen: "lobby",
   playerId: null,
-  mySymbol: null,
   sessionId: null,
   room: null,
   snapshot: null,
   result: null,
   rooms: [],
-  notice: null,
   selectedGame: "tictactoe",
   rematchVoted: false,
 };
 
-const listeners = new Set<() => void>();
-export function subscribe(fn: () => void): void {
-  listeners.add(fn);
-}
-export function emit(): void {
-  listeners.forEach((fn) => fn());
-}
-
-export function notify(text: string | null): void {
-  state.notice = text;
-  emit();
+/// The game being played (or, in the lobby, the one picked in the picker).
+export function currentGameId(): string {
+  return state.room?.game_id ?? state.selectedGame;
 }

@@ -6,11 +6,10 @@ under authoritative control; the race proceeds starting -> racing -> finished.
 
 from __future__ import annotations
 
-import math
 from dataclasses import replace
 from typing import Any, Sequence
 
-from mp.games.base import Game, GameEvent, GameError, GameSession
+from mp.games.base import CountdownSession, Game, GameEvent, GameError
 from mp.games.racing import game as rules
 
 
@@ -22,17 +21,15 @@ class RacingGame(Game):
         return RacingSession(player_ids)
 
 
-class RacingSession(GameSession):
+class RacingSession(CountdownSession):
     TICKS_PER_SEC = 24
-    COUNTDOWN_TICKS = 72  # ~3 second countdown
+    COUNTDOWN_TICKS = 3 * TICKS_PER_SEC
+    RUN_PHASE = "racing"
 
     def __init__(self, player_ids: Sequence[str]) -> None:
         super().__init__(game_id="racing", player_ids=player_ids)
         if not (2 <= len(player_ids) <= 4):
             raise GameError("racing requires between 2 and 4 players")
-        self.rate = 1 / self.TICKS_PER_SEC
-        self.phase = "starting"
-        self.countdown = self.COUNTDOWN_TICKS
         self.inputs: dict[str, dict] = {pid: {} for pid in player_ids}
         self.state = rules.State(cars=rules.start_cars(list(player_ids)))
 
@@ -57,10 +54,7 @@ class RacingSession(GameSession):
         if self.phase == "finished":
             return []
         if self.phase == "starting":
-            self.countdown -= 1
-            if self.countdown <= 0:
-                self.phase = "racing"
-            return [GameEvent(GameEvent.STATE, {"state": self.snapshot()})]
+            return self.tick_countdown()
 
         self.state = rules.step(self.state, self.inputs, self.rate)
         events = [GameEvent(GameEvent.STATE, {"state": self.snapshot()})]
@@ -101,7 +95,7 @@ class RacingSession(GameSession):
             )
         return {
             "phase": self.phase,
-            "countdown": max(0, math.ceil(self.countdown / self.TICKS_PER_SEC)),
+            "countdown": self.countdown_seconds,
             "track": {
                 "w": rules.W,
                 "h": rules.H,
@@ -114,7 +108,6 @@ class RacingSession(GameSession):
             "order": list(self.state.order),
             "finished": self.phase == "finished",
             "symbols": {c.player_id: c.color for c in self.state.cars},
-            "color_palette": list(rules.PALETTE),
         }
 
     def result(self) -> dict[str, Any]:

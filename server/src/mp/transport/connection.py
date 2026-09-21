@@ -49,14 +49,12 @@ class Client:
         self.connection_id = connection_id
         self._send = send
         self.player_id: Optional[str] = None  # bound on successful hello
-        self.last_seq: Optional[int] = None
         self.strikes: int = 0
         self.limiter = RateLimiter(
             capacity=settings.rate_limit_capacity,
             refill_per_sec=settings.rate_limit_refill_per_sec,
             cost=settings.rate_limit_cost,
         )
-        self.max_strikes = settings.max_dispatch_strikes
 
     def take_strike(self) -> int:
         self.strikes += 1

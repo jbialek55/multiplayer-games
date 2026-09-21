@@ -73,6 +73,19 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  /* it is a <button> (the way back to the main screen): strip button chrome */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.brand:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .brand__mark {
@@ -644,16 +657,6 @@ body {
   border: 2px solid var(--border-strong);
 }
 
-/* --------------------------------------------------------------- racing */
-.racing-canvas {
-  display: block;
-  width: 100%;
-  max-width: min(100%, 700px);
-  height: auto;
-  border-radius: 10px;
-  border: 2px solid var(--border-strong);
-}
-
 /* ---------------------------------------------------------------- snake */
 .snake-canvas {
   display: block;
@@ -874,4 +877,111 @@ body {
   .quiz-options {
     grid-template-columns: 1fr;
   }
+}
+
+/* ------------------------------------------------------- how-to / legend */
+[hidden] {
+  display: none !important;
+}
+
+/* colour dot in the "you" chip (pong side / snake colour) */
+.chip strong.has-dot::before {
+  content: "";
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--dot);
+  border: 2px solid var(--surface-strong);
+  vertical-align: baseline;
+}
+
+/* snake legend: who is which colour */
+.snake-wrap {
+  width: 100%;
+  max-width: 620px;
+}
+.snake-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.snake-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.snake-chip.me {
+  border-color: var(--text);
+  font-weight: 800;
+}
+.snake-chip.dead {
+  opacity: 0.5;
+}
+.snake-chip i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.howto {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.howto summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.howto ul {
+  margin: 10px 0 2px;
+  padding-left: 20px;
+}
+.howto li + li {
+  margin-top: 6px;
+}
+
+/* quiz: answer reveal */
+.quiz-verdict {
+  margin-bottom: 8px;
+  font-weight: 800;
+}
+.quiz-verdict.ok {
+  color: var(--success);
+}
+.quiz-verdict.bad {
+  color: var(--danger);
+}
+.quiz-opt.correct {
+  border-color: var(--success);
+  background: #dcefd9;
+}
+.quiz-opt.wrong {
+  border-color: var(--danger);
+  background: #f4d9d5;
+}
+.quiz-tag {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.quiz-reveal .quiz-opt:disabled {
+  opacity: 1;
 }

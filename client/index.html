@@ -21,10 +21,10 @@
   <body>
     <div class="app">
       <header class="topbar">
-        <div class="brand">
+        <button class="brand" id="brand" type="button" title="Back to the main screen">
           <div class="brand__mark">♟</div>
           <div class="brand__name">Play<span>ground</span></div>
-        </div>
+        </button>
         <div class="connection" id="status">connecting…</div>
       </header>
 
@@ -99,6 +99,8 @@
           <div class="result" id="result"></div>
           <div class="turn-line" id="turn"></div>
         </div>
+
+        <details class="howto" id="game-howto" hidden></details>
 
         <div class="actions" style="margin-top: 16px">
           <button class="btn btn--primary" id="rematch" style="display: none">↻ Play again</button>

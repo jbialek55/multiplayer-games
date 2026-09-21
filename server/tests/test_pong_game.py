@@ -76,3 +76,36 @@ def test_win_at_win_score():
     s2 = g.step(s, 0, 0, 1.0)
     assert s2.score_l == g.WIN_SCORE
     assert s2.winner == g.LEFT
+
+
+def _ball_at_left_paddle(rally: int) -> g.State:
+    return g.State(
+        ball_x=g.PAD_W + g.PAD_W / 2 + g.BALL_R + 1, ball_y=50, ball_vx=-g.SERVE_VX, ball_vy=0,
+        pad_l=50, pad_r=50, score_l=0, score_r=0, rally=rally,
+    )
+
+
+def test_ball_speeds_up_5_percent_per_paddle_hit():
+    s = g.step(_ball_at_left_paddle(rally=0), 0, 0, DT)
+    assert s.rally == 1
+    assert abs(s.ball_vx - g.SERVE_VX * 1.05) < 1e-9
+    s = g.step(_ball_at_left_paddle(rally=1), 0, 0, DT)
+    assert abs(s.ball_vx - g.SERVE_VX * 1.05**2) < 1e-9
+
+
+def test_speed_up_also_scales_the_vertical_speed():
+    s = g.State(ball_x=8, ball_y=55, ball_vx=-g.SERVE_VX, ball_vy=0, pad_l=50, pad_r=50, score_l=0, score_r=0, rally=3)
+    out = g.step(s, 0, 0, DT)
+    plain = (55 - 50) / (g.PAD_H / 2) * g.BALL_SPEED * 0.6
+    assert abs(out.ball_vy - plain * g.speed_mult(4)) < 1e-6
+
+
+def test_speed_up_is_capped():
+    assert g.speed_mult(1000) == g.MAX_SPEED_MULT
+
+
+def test_a_point_resets_the_rally_and_the_speed():
+    s = g.State(ball_x=-g.BALL_R - 1, ball_y=50, ball_vx=-100, ball_vy=0, pad_l=10, pad_r=50, score_l=0, score_r=0, rally=9)
+    out = g.step(s, 0, 0, DT)
+    assert out.score_r == 1 and out.rally == 0
+    assert abs(out.ball_vx) == g.SERVE_VX

@@ -5,14 +5,11 @@ import type { GameSnapshot } from "../protocol";
 import { renderTicTacToe } from "./tictactoe/render";
 import { renderChess } from "./chess/render";
 import { renderQuiz } from "./quiz/render";
-import { renderPong } from "./pong/render";
-import { renderSnake } from "./snake/render";
+import { pongRole, renderPong } from "./pong/render";
+import { renderSnake, snakeRole } from "./snake/render";
+import type { RenderCtx, Role } from "./types";
 
-export interface RenderCtx {
-  snapshot: GameSnapshot;
-  me: string | null;
-  send: (action: Record<string, unknown>) => void;
-}
+export type { RenderCtx, Role };
 
 type RenderFn = (container: HTMLElement, ctx: RenderCtx) => void;
 
@@ -33,3 +30,10 @@ export const GAME_NAMES: Record<string, string> = {
 };
 
 export const QUICK_MATCH_GAMES = ["tictactoe", "chess", "pong"];
+
+/// Colour/side of the player for colour-coded games; null for the others.
+export function roleOf(gameId: string, snapshot: GameSnapshot, me: string | null): Role | null {
+  if (gameId === "pong") return pongRole(snapshot, me);
+  if (gameId === "snake") return snakeRole(snapshot, me);
+  return null;
+}

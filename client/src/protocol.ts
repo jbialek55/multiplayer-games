@@ -60,10 +60,6 @@ export interface GameResult {
   winning_line?: number[] | null;
 }
 
-export function call(type: MessageType, payload: Record<string, unknown>, seq?: number): Envelope {
-  return { type, seq, payload };
-}
-
 export const STORAGE = {
   playerId: "mp.playerId",
   sessionId: "mp.sessionId",

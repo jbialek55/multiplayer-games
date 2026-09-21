@@ -51,7 +51,7 @@ class Room:
         self.players.pop(player_id, None)
         if not self.players:
             self.status = RoomStatus.CLOSED
-        elif self.host_id == player_id and self.players:
+        elif self.host_id == player_id:
             # Promote the next joined player to host so the room stays usable.
             self.host_id = next(iter(self.players))
 
