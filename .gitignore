@@ -5,7 +5,8 @@ __pycache__/
 .pytest_cache/
 server/mp.db
 server/mp.db-*
-
+docs/
+mp.db
 # Node
 client/node_modules/
 client/dist/
