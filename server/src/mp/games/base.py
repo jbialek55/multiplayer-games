@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 from typing import Sequence, Any
-
+from abc import abstractmethod
 
 class GameError(Exception):
     """A game-level, user-facing failure (illegal move, not your turn, ...).
@@ -50,7 +50,6 @@ class Game:
         self.name = name
         self.min_players = min_players
         self.max_players = max_players
-
     def create_session(self, player_ids: Sequence[str]) -> "GameSession":
         raise NotImplementedError("games must implement create_session()")
 

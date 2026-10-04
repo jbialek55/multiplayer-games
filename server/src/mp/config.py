@@ -1,7 +1,6 @@
 """Runtime configuration for the multiplayer server.
+    host, port, limit, strikes, max_rooms, db are read from env variables
 
-All values are intended to be overridable via environment variables for the
-future VPS deployment, but have sensible localhost defaults for the MVP.
 """
 
 from __future__ import annotations

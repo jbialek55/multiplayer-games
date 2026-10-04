@@ -5,10 +5,12 @@ Every WebSocket message is a JSON object with a uniform envelope:
     {"type": "<message_type>", "seq": <int>, "payload": {...}}
 
 - ``type`` selects the schema the payload is validated against.
-- ``seq`` is a monotonic per-connection counter used for ordering/duplicate
-  detection; optional on client->server commands, omitted on server->client
-  messages except when correlating to a command ``seq``.
-- ``payload`` is always an object (may be empty).
+- ``seq`` is a client-supplied correlation id, echoed back on the reply sent
+  to that same client so it can match a response to the command it sent.
+  It is *not* currently used for ordering or duplicate detection on the
+  server — Platform.handle() only copies it onto outgoing Deliveries aimed
+  at the original sender. Optional on client->server commands; omitted on
+  server->client messages that aren't a direct reply.
 
 Serialization/deserialization lives at the transport boundary. These schemas
 are the single source of truth for the wire format and are mirrored on the
@@ -18,7 +20,7 @@ client in ``client/src/protocol.ts``.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -81,7 +83,7 @@ class MessageType(str, Enum):
 CLIENT_TYPES: dict[str, type[BaseModel]] = {}
 
 
-def _register(type: str) -> callable:
+def _register(type: str) -> Callable:
     def deco(model: type[BaseModel]) -> type[BaseModel]:
         CLIENT_TYPES[type] = model
         return model
