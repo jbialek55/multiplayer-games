@@ -7,6 +7,8 @@ server/mp.db
 server/mp.db-*
 docs/
 mp.db
+mp.db-shm
+mp.db-wal
 # Node
 client/node_modules/
 client/dist/
