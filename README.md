@@ -4,8 +4,6 @@
 
 **🟢 Live right now:** **[mp-platform.duckdns.org](https://mp-platform.duckdns.org/)** — hosted on an Oracle Cloud "Always Free" instance. Open it in two tabs / on two devices and play with someone instantly.
 
-> 🎥 *(Gameplay clips will go here)*
-
 ---
 
 ## Table of contents
