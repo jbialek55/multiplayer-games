@@ -152,3 +152,14 @@ def _correct_for(s) -> int:
 def _wrong_for(s) -> int:
     q = s.pool[s.q_index]
     return (q["answer"] + 1) % 4
+
+
+def test_forfeit_records_winner_in_snapshot() -> None:
+    """A forfeited quiz must report the remaining player as the winner."""
+    from mp.games.quiz.session import QuizSession
+
+    s = QuizSession(["a", "b"])
+    s.start()
+    s.mark_finished("b", "forfeit")
+    snap = s.snapshot()
+    assert snap["finished"] and snap["winner"] == "b" and not snap["draw"]

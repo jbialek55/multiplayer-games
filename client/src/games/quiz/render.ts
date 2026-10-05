@@ -82,9 +82,13 @@ function draw(container: HTMLElement, ctx: RenderCtx): void {
 
   if (finished) {
     const res = document.createElement("div");
-    const cls = snapshot.draw ? "draw" : snapshot.winner === me ? "win" : "lose";
+    // The game_over result is authoritative (a forfeit/abandon has no winner in the snapshot).
+    const res_ = ctx.result;
+    const isDraw = res_ ? res_.draw : Boolean(snapshot.draw);
+    const winner = res_ ? res_.winner : (snapshot.winner as string | null);
+    const cls = isDraw ? "draw" : winner === me ? "win" : "lose";
     res.className = `quiz-result ${cls}`;
-    res.textContent = snapshot.draw ? "Draw!" : snapshot.winner === me ? "You win!" : "You lose";
+    res.textContent = isDraw ? "Draw!" : winner === me ? "You win!" : "You lose";
     container.appendChild(res);
     return;
   }

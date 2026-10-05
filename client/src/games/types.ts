@@ -1,9 +1,10 @@
-import type { GameSnapshot } from "../protocol";
+import type { GameResult, GameSnapshot } from "../protocol";
 
 /// What every game renderer receives on each snapshot.
 export interface RenderCtx {
   snapshot: GameSnapshot;
   me: string | null;
+  result?: GameResult | null;
   send: (action: Record<string, unknown>) => void;
 }
 

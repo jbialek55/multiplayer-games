@@ -82,12 +82,14 @@ class GameSession:
     def is_finished(self) -> bool:
         return self.finished
 
-    def mark_finished(self) -> None:
+    def mark_finished(self, winner: str | None = None, reason: str | None = None) -> None:
         """Force the game into a finished state (external cancellation, forfeit).
 
         Forfeit policy is a platform/network concern, so the platform calls this
-        rather than the game deciding it. Games that care may override to also
-        update their internal state.
+        rather than the game deciding it. ``winner`` is the player id that wins
+        by forfeit/abandonment (if any), so games whose snapshot carries the
+        winner can report it instead of an empty result. Games that care may
+        override to also update their internal state.
         """
         self.finished = True
 

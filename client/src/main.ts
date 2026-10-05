@@ -2,6 +2,7 @@ import { WsConnection } from "./net/ws";
 import { currentGameId, state } from "./state";
 import { STORAGE, type Envelope, type RoomInfo, type GameSnapshot } from "./protocol";
 import { GAME_RENDERERS, GAME_NAMES, QUICK_MATCH_GAMES, roleOf, type RenderCtx, type Role } from "./games";
+import { resetPong } from "./games/pong/render";
 import { resetChess } from "./games/chess/render";
 import { resetBoard } from "./games/tictactoe/render";
 import { resetQuiz } from "./games/quiz/render";
@@ -14,6 +15,7 @@ const conn = new WsConnection();
 // server rejects it (stale session after a restart/ended game), we fall back to
 // a fresh `hello` so the connection is never left unbound.
 let rejoinPending = false;
+let rejoinTries = 0;
 
 // --- elements ---------------------------------------------------------------
 function byId(id: string): HTMLElement | null {
@@ -171,6 +173,7 @@ function render(): void {
     const ctx: RenderCtx = {
       snapshot: state.snapshot,
       me: state.playerId,
+      result: state.result,
       send: (action) => conn.send("game_action", { action }),
     };
     if (renderer) renderer(boardEl, ctx);
@@ -259,6 +262,7 @@ function apply(message: Envelope): void {
       state.snapshot = null;
       state.result = null;
       state.sessionId = null;
+      state.activeGame = null;
       state.screen = "lobby";
       resetInput();
       clear(STORAGE.sessionId);
@@ -273,20 +277,33 @@ function apply(message: Envelope): void {
       state.sessionId = p.session_id as string;
       write(STORAGE.sessionId, state.sessionId);
       state.snapshot = p.state as GameSnapshot;
+      state.activeGame = (p.game_id as string | undefined) ?? state.room?.game_id ?? null;
       state.result = null;
       state.screen = "game";
       state.rematchVoted = false; // a new game resets the rematch votes
       resetBoard(); // fresh tic-tac-toe animation cache
       resetChess(); // clear any stale piece selection
       resetQuiz(); // don't replay the last game's answer reveal
+      resetPong(); // fresh ball/paddle smoothing
       resetInput(); // a new paddle/snake: the first press must be sent
       gameHowToEl.dataset.game = ""; // show the how-to open again for the new game
       setNotice(null);
       break;
     }
     case "state_update":
-      rejoinPending = false; // a resync snapshot means rejoin succeeded
       state.snapshot = p.state as GameSnapshot;
+      if (typeof p.game_id === "string") state.activeGame = p.game_id;
+      if (rejoinPending) {
+        // First snapshot after a rejoin: drop every renderer's cache from the
+        // previous page/connection so nothing stale is drawn.
+        resetBoard();
+        resetChess();
+        resetQuiz();
+        resetPong();
+        resetInput();
+        gameHowToEl.dataset.game = "";
+      }
+      rejoinPending = false; // a resync snapshot means rejoin succeeded
       // A state_update always describes an in-progress game. This is the only
       // signal we get back on a successful rejoin (no room_joined/room_update
       // is sent), so without this the client stayed stuck on the lobby screen
@@ -314,6 +331,17 @@ function apply(message: Envelope): void {
       );
       break;
     case "error":
+      if (rejoinPending && p.message === "player already connected" && rejoinTries < 6) {
+        // The server has not noticed our previous socket closing yet (page
+        // reload): the session is still ours, so retry instead of giving up.
+        rejoinTries += 1;
+        const pid = state.playerId;
+        const sid = state.sessionId;
+        window.setTimeout(() => {
+          if (rejoinPending && pid && sid) conn.send("rejoin", { player_id: pid, session_id: sid });
+        }, 600);
+        break;
+      }
       if (rejoinPending) {
         // The stored session is stale (server restarted / game ended) — start
         // fresh with a new identity instead of staying unbound, and don't
@@ -338,9 +366,22 @@ conn.onStatus = (s: string) => {
   state.status = s;
   render();
 };
+// Realtime games push up to 60 snapshots a second. Re-running the whole render
+// (header, buttons, DOM lookups) for each one made desktop browsers stutter, so
+// state_updates are folded into one render per animation frame.
+let renderQueued = false;
+function scheduleRender(): void {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    render();
+  });
+}
 conn.onMessage = (m: Envelope) => {
   apply(m);
-  render();
+  if (m.type === "state_update") scheduleRender();
+  else render();
 };
 conn.onOpen = () => {
   const savedPlayer = read<string>(STORAGE.playerId);
@@ -349,6 +390,7 @@ conn.onOpen = () => {
     state.playerId = savedPlayer;
     state.sessionId = savedSession;
     rejoinPending = true;
+    rejoinTries = 0;
     conn.send("rejoin", { player_id: savedPlayer, session_id: savedSession });
   } else {
     rejoinPending = false;

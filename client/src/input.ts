@@ -89,17 +89,31 @@ export function setTouchMode(board: HTMLElement, game: string): void {
 export function initInput(sendAction: Send, board: HTMLElement): void {
   send = sendAction;
 
+  // Pong keys: remember which of Up/Down are held. Releasing one while the
+  // other is still down used to send "stop", so quickly switching direction
+  // made the paddle freeze and stutter.
+  const held = new Set<string>();
+  const pongHeld = () => (held.has("ArrowDown") ? 1 : 0) - (held.has("ArrowUp") ? 1 : 0);
+
   window.addEventListener("keydown", (e) => {
     if (live("pong") && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
       e.preventDefault();
-      pongDir(e.key === "ArrowUp" ? -1 : 1);
+      held.add(e.key);
+      pongDir(pongHeld());
     } else if (live("snake") && SNAKE_KEYS[e.key]) {
       e.preventDefault();
       snakeDir(SNAKE_KEYS[e.key]);
     }
   });
   window.addEventListener("keyup", (e) => {
-    if (live("pong") && (e.key === "ArrowUp" || e.key === "ArrowDown")) pongDir(0);
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      held.delete(e.key);
+      if (live("pong")) pongDir(pongHeld());
+    }
+  });
+  window.addEventListener("blur", () => {
+    held.clear();
+    if (live("pong")) pongDir(0);
   });
 
   // One finger at a time. Pong: the paddle moves as far as the finger does

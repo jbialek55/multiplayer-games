@@ -219,6 +219,9 @@ class GameStartedPayload(BaseModel):
 
 class StateUpdatePayload(BaseModel):
     state: dict[str, Any]
+    # Which game the snapshot belongs to. A client that just rejoined has no
+    # room/game info yet and needs this to pick the right renderer.
+    game_id: str | None = None
 
 
 class GameOverPayload(BaseModel):

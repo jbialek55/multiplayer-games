@@ -16,6 +16,7 @@ export interface AppState {
   rooms: RoomInfo[];
   selectedGame: string;
   rematchVoted: boolean; // whether this player asked for a rematch
+  activeGame: string | null; // game of the running session (known even without room info, e.g. after a rejoin)
 }
 
 export const state: AppState = {
@@ -29,9 +30,10 @@ export const state: AppState = {
   rooms: [],
   selectedGame: "tictactoe",
   rematchVoted: false,
+  activeGame: null,
 };
 
 /// The game being played (or, in the lobby, the one picked in the picker).
 export function currentGameId(): string {
-  return state.room?.game_id ?? state.selectedGame;
+  return state.room?.game_id ?? (state.screen === "game" ? state.activeGame : null) ?? state.selectedGame;
 }

@@ -565,7 +565,7 @@ body {
 }
 
 .result {
-  margin: 8px 0 22px;
+  margin: 22px 0 22px;
   text-align: center;
   font-family: var(--display);
   font-size: 22px;
@@ -776,7 +776,7 @@ body {
   font-family: var(--mono);
 }
 .quiz-result {
-  margin: 12px 0;
+  margin: 32px 0 16px;
   font-family: var(--display);
   font-size: 26px;
   font-weight: 700;

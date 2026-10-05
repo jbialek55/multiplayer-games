@@ -28,11 +28,29 @@ const MARGIN = 30; // canvas px between the edge and the playing field
 
 let canvas: HTMLCanvasElement | null = null;
 let me: string | null = null;
-let prevSnap: GameSnapshot | null = null;
 let lastSnap: GameSnapshot | null = null;
-let prevTs = 0;
-let lastTs = 0;
 let rafId: number | null = null;
+
+// What is actually drawn. It chases the latest server snapshot with an
+// exponential ease instead of jumping to it, so uneven packet arrival (the
+// server sends 60 snapshots/s) never shows up as stutter. The old code tried to
+// interpolate between snapshots but its progress was always already 1, i.e. it
+// jumped to every new snapshot -- smooth only on a perfectly even connection.
+interface Shown {
+  ballX: number;
+  ballY: number;
+  padL: number;
+  padR: number;
+  ts: number;
+}
+let shown: Shown | null = null;
+const SMOOTH_TAU_MS = 35; // time constant of the ease
+const SNAP_DIST = 12; // field units: a bigger jump (serve, new point) is not eased
+
+export function resetPong(): void {
+  shown = null;
+  lastSnap = null;
+}
 
 export function renderPong(container: HTMLElement, ctx: RenderCtx): void {
   me = ctx.me;
@@ -43,15 +61,22 @@ export function renderPong(container: HTMLElement, ctx: RenderCtx): void {
     canvas.width = 620;
     canvas.height = 620;
     container.appendChild(canvas);
+    shown = null;
   }
-  // shift history for interpolation (nothing moves during the countdown)
-  prevSnap = ctx.snapshot.phase === "starting" ? null : lastSnap;
-  prevTs = lastTs;
   lastSnap = ctx.snapshot;
-  lastTs = performance.now();
-
-  draw(canvas, ctx.snapshot);
+  if (!shown || ctx.snapshot.phase === "starting" || ctx.snapshot.finished) shown = target(ctx.snapshot);
   if (rafId == null) rafId = requestAnimationFrame(loop);
+  else if (ctx.snapshot.phase === "starting" || ctx.snapshot.finished) draw(canvas, view());
+}
+
+function target(s: GameSnapshot): Shown {
+  return {
+    ballX: s.ball.x as number,
+    ballY: s.ball.y as number,
+    padL: s.paddles.l as number,
+    padR: s.paddles.r as number,
+    ts: performance.now(),
+  };
 }
 
 /// Field y (0..100) under a viewport y coordinate, or null when there is no
@@ -77,19 +102,30 @@ function loop(): void {
     rafId = null;
     return;
   }
-  draw(canvas, interpolate());
+  draw(canvas, view());
   rafId = requestAnimationFrame(loop);
 }
 
-function interpolate(): GameSnapshot {
-  if (!prevSnap || prevTs >= lastTs) return lastSnap!;
-  const p = Math.min(1, Math.max(0, (performance.now() - prevTs) / (lastTs - prevTs)));
-  const a = prevSnap;
-  const b = lastSnap!;
+/// Advance the eased position towards the latest snapshot and return a
+/// snapshot to draw.
+function view(): GameSnapshot {
+  const t = target(lastSnap!);
+  if (!shown) shown = t;
+  const dt = Math.min(100, Math.max(0, t.ts - shown.ts));
+  const k = 1 - Math.exp(-dt / SMOOTH_TAU_MS);
+  const far = Math.hypot(t.ballX - shown.ballX, t.ballY - shown.ballY) > SNAP_DIST;
+  const f = far ? 1 : k;
+  shown = {
+    ballX: lerp(shown.ballX, t.ballX, f),
+    ballY: lerp(shown.ballY, t.ballY, f),
+    padL: lerp(shown.padL, t.padL, k),
+    padR: lerp(shown.padR, t.padR, k),
+    ts: t.ts,
+  };
   return {
-    ...b,
-    ball: { x: lerp(a.ball.x, b.ball.x, p), y: lerp(a.ball.y, b.ball.y, p) },
-    paddles: { l: lerp(a.paddles.l, b.paddles.l, p), r: lerp(a.paddles.r, b.paddles.r, p) },
+    ...lastSnap!,
+    ball: { x: shown.ballX, y: shown.ballY },
+    paddles: { l: shown.padL, r: shown.padR },
   };
 }
 

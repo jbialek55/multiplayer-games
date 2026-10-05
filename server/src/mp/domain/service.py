@@ -228,7 +228,7 @@ class Platform:
                     if session.is_finished():
                         self._close_session(room.session_id, room, result=session.result())
                 else:
-                    session.mark_finished()
+                    session.mark_finished(remaining[0] if remaining else None, "abandoned")
                     result = {"winner": remaining[0] if remaining else None, "reason": "abandoned"}
                     self._close_session(room.session_id, room, result=result)
                     for pid in remaining:
@@ -285,7 +285,18 @@ class Platform:
         )
         for pid in session.player_ids:
             deliveries.append(
-                Delivery(pid, MessageType.STATE_UPDATE, StateUpdatePayload(state=session.snapshot()))
+                Delivery(
+                    pid,
+                    MessageType.STATE_UPDATE,
+                    StateUpdatePayload(state=session.snapshot(), game_id=session.game_id),
+                )
+            )
+        # The rejoining client has lost its room info (code, host, game): send
+        # it right after the resync snapshot (which must stay the first message).
+        room = self._current_room(payload.player_id)
+        if room is not None:
+            deliveries.append(
+                Delivery(payload.player_id, MessageType.ROOM_UPDATE, RoomActionPayload(room=room.info()))
             )
         return deliveries
 
@@ -462,8 +473,18 @@ class Platform:
         session = self.state.sessions.get(session_id)
         if session is None:
             return
+        # Schedule ticks against a monotonic deadline instead of ``sleep(rate)``
+        # after the work: the latter adds the processing + send time to every
+        # tick, so the game ran slow and the ticks arrived unevenly (visible as
+        # stutter). If we ever fall far behind, re-anchor instead of bursting.
+        interval = session.rate or 0.03
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + interval
         while True:
-            await asyncio.sleep(session.rate or 0.03)
+            await asyncio.sleep(max(0.0, deadline - loop.time()))
+            deadline += interval
+            if deadline < loop.time() - 5 * interval:
+                deadline = loop.time() + interval
             if session.is_finished() or self.state.sessions.get(session_id) is not session:
                 break
             events = session.tick()
@@ -519,7 +540,9 @@ class Platform:
                 for pid in session.player_ids:
                     out.append(
                         Delivery(
-                            pid, MessageType.STATE_UPDATE, StateUpdatePayload(state=session.snapshot())
+                            pid,
+                            MessageType.STATE_UPDATE,
+                            StateUpdatePayload(state=session.snapshot(), game_id=session.game_id),
                         )
                     )
             elif ev.type == GameEvent.OVER:
@@ -591,7 +614,7 @@ class Platform:
             winner = next((p for p in session.player_ids if p != loser_id), None)
             if winner is None:
                 return
-            session.mark_finished()
+            session.mark_finished(winner, "forfeit")
             result = {"winner": winner, "reason": "forfeit"}
             self._close_session(session_id, room, result=result)
             for pid in session.player_ids:

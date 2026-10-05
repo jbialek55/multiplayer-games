@@ -108,6 +108,19 @@ class QuizSession(GameSession):
         self.cursor = self.cursor % len(self.alive)
         return [GameEvent(GameEvent.STATE, {"state": self.snapshot()})]
 
+    def mark_finished(self, winner: str | None = None, reason: str | None = None) -> None:
+        """Forfeit/abandon: end the game and record who won.
+
+        Without this the snapshot of a forfeited game had ``winner=None`` and
+        ``draw=False`` -- the client then showed "You lose" to the player who
+        was actually the last one standing.
+        """
+        super().mark_finished(winner, reason)
+        if winner is not None and winner in self.player_ids:
+            self.winner = winner
+            self.draw = False
+        self.end_reason = reason or self.end_reason or "abandoned"
+
     # --- gameplay ---------------------------------------------------- #
     def handle_input(self, player_id: str, action: dict[str, Any]) -> list[GameEvent]:
         if not self.started:
