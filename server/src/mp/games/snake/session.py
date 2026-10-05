@@ -52,7 +52,7 @@ class SnakeSession(CountdownSession):
     def handle_input(self, player_id: str, action: dict[str, Any]) -> list[GameEvent]:
         if not self.started:
             raise GameError("game not started")
-        if self.phase == "finished":
+        if self.phase == "finished" or self.state.winner is not None:
             raise GameError("game is over")
         d = action.get("dir")
         if d not in rules.DIRS:

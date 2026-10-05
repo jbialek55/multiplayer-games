@@ -129,7 +129,15 @@ def step(state: State) -> State:
             if head in body_of[j]:  # ran into another snake
                 dead.add(i)
                 break
-
+    for i in body_of:
+        for j in body_of:
+            if i >= j:
+                continue
+            i_came_from = state.snakes[i].body[0]
+            j_came_from = state.snakes[j].body[0]
+            if moved[i].body[0] == j_came_from and moved[j].body[0] == i_came_from:
+                dead.add(i)
+                dead.add(j)
     for i in dead:
         moved[i] = replace(moved[i], alive=False)
     still_alive = [i for i in range(len(moved)) if moved[i].alive]

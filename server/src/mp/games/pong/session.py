@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import math
 from typing import Any, Sequence
+import random
 
 from mp.games.base import CountdownSession, Game, GameEvent, GameError
 from mp.games.pong import game as rules
@@ -36,7 +37,8 @@ class PongSession(CountdownSession):
         if len(player_ids) != 2:
             raise GameError("pong requires exactly 2 players")
         # player_ids[0] = left paddle, player_ids[1] = right paddle.
-        self.sides: dict[str, str] = {player_ids[0]: rules.LEFT, player_ids[1]: rules.RIGHT}
+        self.choice = random.choice([0,1])
+        self.sides: dict[str, str] = {player_ids[self.choice]: rules.LEFT, player_ids[1-self.choice]: rules.RIGHT}
         self.state: rules.State = rules.new_state()
         self.inputs: dict[str, int] = {player_ids[0]: 0, player_ids[1]: 0}
         self.targets: dict[str, float | None] = {player_ids[0]: None, player_ids[1]: None}
@@ -77,7 +79,7 @@ class PongSession(CountdownSession):
         if self.phase == "starting":
             return self.tick_countdown()
 
-        left, right = self.player_ids
+        left, right = self.player_ids[self.choice],self.player_ids[1-self.choice]
         before = self.state
         self.state = rules.step(
             self.state,
