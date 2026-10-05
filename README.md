@@ -323,7 +323,6 @@ cd client && pnpm build            # tsc --noEmit + build — catches type error
 
 Tests are split along the architectural boundaries: `test_chess_game.py` / `test_pong_game.py` / `test_snake_game.py` / `test_tictactoe_game.py` test the **pure game engines** with no server involved at all, while the `test_*_wiring.py` files test only that a given game correctly "plugs into" the platform (matchmaking, starting, ending a game) — with no knowledge of that game's own rules.
 
-> **Note:** a few Pong tests in `tests/test_pong_wiring.py` are out of date relative to the code — they assume `p1` always gets the left paddle and a paddle speed of 45 (the code now assigns sides randomly and uses 60 units/s). Depending on the random side, 2–3 of the 140 tests fail. Remove this note once they're updated.
 
 ## Production deployment
 

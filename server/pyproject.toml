@@ -5,6 +5,8 @@ description = "Multiplayer game platform - authoritative game server (MVP)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
+    "httpx2>=2.13.1",
+    "pytest>=9.1.1",
     "uvicorn>=0.34",
     "websockets>=13",
 ]
