@@ -341,8 +341,6 @@ Because game state lives in the RAM of a single process, the architecture delibe
 
 ## Possible next steps
 
-- Fix the stale Pong tests (pin the side assignment in tests; update the paddle speed).
-- Skip (or time out) disconnected players in Quiz, so one dropped connection can't stall the table.
 - Chess: promotion picker and threefold repetition.
 - Leaderboards / stats built on top of the SQLite `games` table (the data is already being collected — only the view is missing; note the Tic-Tac-Toe `winner` is a symbol, not a player id).
 - Spectator mode — `Delivery` and `ConnectionRegistry` already support addressing an arbitrary player, so adding a non-voting "observer" role is a natural next step.
