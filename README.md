@@ -2,7 +2,7 @@
 
 **A custom-built, fully authoritative realtime platform for playing games with others in the browser** — no accounts, no login, no downloads. You open the page, get a room code (or get matched with a random opponent), and play.
 
-**🟢 Live right now:** **[mp-platform.duckdns.org](https://mp-platform.duckdns.org/)** — hosted on an Oracle Cloud "Always Free" instance. Open it in two tabs / on two devices and play with someone instantly.
+**🟢 Live right now:** **[click!](https://multiplayer-games-viem.onrender.com/)** — hosted on an Oracle Cloud "render.com" free instance. Open it in two tabs / on two devices and play with someone instantly.
 
 ---
 
@@ -68,7 +68,7 @@ Game-specific details worth knowing:
 - Zero runtime dependencies — all UI logic is hand-written
 - A single `protocol.ts` file mirroring the backend's message types
 
-**Infrastructure**: Oracle Cloud (Always Free tier VM), `uvicorn` behind a reverse proxy, domain via DuckDNS.
+**Infrastructure**: Render.com
 
 ## Architecture
 
@@ -324,7 +324,7 @@ Tests are split along the architectural boundaries: `test_chess_game.py` / `test
 
 ## Production deployment
 
-The app runs on an **Oracle Cloud Free Tier ("Always Free")** VM at **[mp-platform.duckdns.org](https://mp-platform.duckdns.org/)** (the domain is via DuckDNS, since the free tier doesn't come with ready-made DNS). The backend (`uvicorn`) only serves `/health`, `/history` and `/ws` — it does **not** serve the client itself, so the output of `pnpm build` (`client/dist`) has to be served by a reverse proxy / static file server that also forwards `/ws` (WebSocket upgrade) and the API routes to `uvicorn`, and terminates TLS (`wss://` needs a certificate). No deployment files (proxy config, systemd unit) are part of this repository.
+The app runs on an **Render.com** VM at **[multiplayer-games-viem.onrender.com](https://multiplayer-games-viem.onrender.com/)**. The backend (`uvicorn`) serves `/health`, `/history` and `/ws` and  the client itself.
 
 Because game state lives in the RAM of a single process, the architecture deliberately assumes **exactly one server instance** — restarting the process drops any active games (acceptable for an MVP).
 
