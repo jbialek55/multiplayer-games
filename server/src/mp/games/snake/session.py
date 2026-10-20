@@ -136,10 +136,14 @@ class SnakeSession(CountdownSession):
             "board": {"w": rules.W, "h": rules.H},
             "snakes": snakes_out,
             "food": [[x, y] for x, y in self.state.food],
-            "winner": self.state.winner,
-            "finished": self.phase == "finished",
+            "winner": self.winner if self.winner is not None else self.state.winner,
+            "finished": self.is_finished() or self.phase == "finished",
             "symbols": {s.player_id: s.color for s in self.state.snakes},
         }
 
     def result(self) -> dict[str, Any]:
-        return {"winner": self.state.winner, "draw": False, "reason": "survival"}
+        return {
+            "winner": self.winner if self.winner is not None else self.state.winner,
+            "draw": False,
+            "reason": self.end_reason or "survival",
+        }

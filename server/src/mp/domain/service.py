@@ -326,7 +326,6 @@ class Platform:
         # Pair the two players into a fresh room; the host is the waiter.
         room = self.state.create_room(host_id=opponent, game_id=payload.game_id)
         room.add_player(origin)
-        room.add_player(opponent)
         self.state.players[origin].current_room_id = room.id
         self.state.players[opponent].current_room_id = room.id
 

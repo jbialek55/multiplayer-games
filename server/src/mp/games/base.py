@@ -68,6 +68,8 @@ class GameSession:
         self.player_ids = list(player_ids)
         self.started: bool = False
         self.finished: bool = False
+        self.winner: str | None = None
+        self.end_reason: str | None = None
         # Realtime games set this to the seconds-between-ticks; the platform
         # then runs a background loop calling ``tick()`` and broadcasting the
         # returned events. ``None`` = turn-based (no background loop).
@@ -92,6 +94,8 @@ class GameSession:
         override to also update their internal state.
         """
         self.finished = True
+        self.winner = winner
+        self.end_reason = reason or "abandoned"
 
     # --- gameplay ---------------------------------------------------- #
     def handle_input(self, player_id: str, action: dict[str, Any]) -> list[GameEvent]:
@@ -151,6 +155,10 @@ class CountdownSession(GameSession):
         """(Re)start the frozen countdown, e.g. before serving after a point."""
         self.phase = "starting"
         self.countdown = self.COUNTDOWN_TICKS
+
+    def mark_finished(self, winner: str | None = None, reason: str | None = None) -> None:
+        super().mark_finished(winner, reason)
+        self.phase = "finished"
 
     def tick_countdown(self) -> list[GameEvent]:
         """Advance the countdown by one tick.

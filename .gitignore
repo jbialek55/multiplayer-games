@@ -1,15 +1,15 @@
 # Python
+.venv/
 server/.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
-server/mp.db
-server/mp.db-*
-docs/
-mp.db
-mp.db-shm
-mp.db-wal
+*.db
+*.db-shm
+*.db-wal
+
 # Node
+node_modules/
 client/node_modules/
 client/dist/
 

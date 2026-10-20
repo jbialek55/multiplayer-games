@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from pathlib import Path
 
 
 def _env_int(name: str, default: int) -> int:
@@ -55,13 +56,14 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         """Build settings, honouring a small set of env overrides."""
+        default_db = str(Path(__file__).resolve().parents[2] / "mp.db")
         return cls(
             host=os.environ.get("MP_HOST", "127.0.0.1"),
             port=_env_int("MP_PORT", 8000),
             max_message_bytes=_env_int("MP_MAX_MSG_BYTES", 65_536),
             max_dispatch_strikes=_env_int("MP_MAX_STRIKES", 3),
             max_rooms=_env_int("MP_MAX_ROOMS", 128),
-            db_path=os.environ.get("MP_DB") or "mp.db",
+            db_path=os.environ.get("MP_DB") or default_db,
         )
 
 

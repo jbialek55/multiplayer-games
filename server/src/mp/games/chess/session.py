@@ -62,7 +62,7 @@ class ChessSession(GameSession):
             events.append(
                 GameEvent(
                     GameEvent.OVER,
-                    {"state": self.snapshot(), "result": self._result(outcome)},
+                    {"state": self.snapshot(), "result": self.result()},
                 )
             )
         return events
@@ -119,11 +119,11 @@ class ChessSession(GameSession):
             "whos_turn": whos,
             "symbols": dict(self.colors),
             "in_check": rules.in_check(self.state, sees),
-            "finished": over,
+            "finished": self.is_finished() or over,
             "is_over": self.state.is_over,
-            "winner": self._winner_pid(outcome),
+            "winner": self.winner if self.winner is not None else self._winner_pid(outcome),
             "draw": bool(outcome.get("draw")),
-            "reason": outcome.get("reason"),
+            "reason": self.end_reason or outcome.get("reason"),
             "legal_moves": legal,
             "last": {"from": rules.sq_name(last.from_sq), "to": rules.sq_name(last.to_sq)}
             if last
@@ -133,9 +133,9 @@ class ChessSession(GameSession):
     def result(self) -> dict[str, Any]:
         outcome = rules.result(self.state)
         return {
-            "winner": self._winner_pid(outcome),
+            "winner": self.winner if self.winner is not None else self._winner_pid(outcome),
             "draw": bool(outcome.get("draw")),
-            "reason": outcome.get("reason"),
+            "reason": self.end_reason or outcome.get("reason"),
         }
 
     def _winner_pid(self, outcome: dict) -> str | None:
@@ -143,10 +143,3 @@ class ChessSession(GameSession):
         if winner_color is None:
             return None
         return self._color_to_player.get(winner_color)
-
-    def _result(self, outcome: dict) -> dict[str, Any]:
-        return {
-            "winner": self._winner_pid(outcome),
-            "draw": bool(outcome.get("draw")),
-            "reason": outcome.get("reason"),
-        }

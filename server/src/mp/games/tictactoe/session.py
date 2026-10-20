@@ -81,19 +81,22 @@ class TicTacToeSession(GameSession):
             "board": list(self.state.board),
             "turn": self.state.turn,
             "whos_turn": self._player_for_symbol(self.state.turn),
-            "winner": self.state.winner,
+            "winner": self.winner if self.winner is not None else self.state.winner,
             "draw": self.state.draw,
-            "finished": self.state.is_finished,
+            "finished": self.is_finished() or self.state.is_finished,
             "symbols": dict(self.symbols),
         }
 
     def result(self) -> dict[str, Any]:
         line = winning_line(self.state)
-        return {
-            "winner": self.state.winner,
+        res: dict[str, Any] = {
+            "winner": self.winner if self.winner is not None else self.state.winner,
             "draw": self.state.draw,
             "winning_line": list(line) if line is not None else None,
         }
+        if self.end_reason is not None:
+            res["reason"] = self.end_reason
+        return res
 
     # --- helpers ----------------------------------------------------- #
     def role_of(self, player_id: str) -> str | None:

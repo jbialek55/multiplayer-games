@@ -20,6 +20,12 @@ from mp.games.base import CountdownSession, Game, GameEvent, GameError
 from mp.games.pong import game as rules
 
 
+def _choose_sides(player_ids: Sequence[str]) -> dict[str, str]:
+    """Pick who plays Left / Right. Its own function so tests can pin it."""
+    choice = random.choice([0, 1])
+    return {player_ids[choice]: rules.LEFT, player_ids[1 - choice]: rules.RIGHT}
+
+
 class PongGame(Game):
     def __init__(self) -> None:
         super().__init__(id="pong", name="Pong", min_players=2, max_players=2)
@@ -36,9 +42,7 @@ class PongSession(CountdownSession):
         super().__init__(game_id="pong", player_ids=player_ids)
         if len(player_ids) != 2:
             raise GameError("pong requires exactly 2 players")
-        # player_ids[0] = left paddle, player_ids[1] = right paddle.
-        self.choice = random.choice([0,1])
-        self.sides: dict[str, str] = {player_ids[self.choice]: rules.LEFT, player_ids[1-self.choice]: rules.RIGHT}
+        self.sides: dict[str, str] = _choose_sides(player_ids)
         self.state: rules.State = rules.new_state()
         self.inputs: dict[str, int] = {player_ids[0]: 0, player_ids[1]: 0}
         self.targets: dict[str, float | None] = {player_ids[0]: None, player_ids[1]: None}
@@ -79,7 +83,8 @@ class PongSession(CountdownSession):
         if self.phase == "starting":
             return self.tick_countdown()
 
-        left, right = self.player_ids[self.choice],self.player_ids[1-self.choice]
+        left = next(pid for pid, s in self.sides.items() if s == rules.LEFT)
+        right = next(pid for pid, s in self.sides.items() if s == rules.RIGHT)
         before = self.state
         self.state = rules.step(
             self.state,
@@ -129,16 +134,16 @@ class PongSession(CountdownSession):
                 "pad_w": rules.PAD_W,
             },
             "symbols": dict(self.sides),  # player_id -> "L"/"R"
-            "finished": self.is_finished(),
-            "winner": self._pid_for(self.state.winner),
+            "finished": self.is_finished() or self.phase == "finished",
+            "winner": self.winner if self.winner is not None else self._pid_for(self.state.winner),
             "win_score": rules.WIN_SCORE,
         }
 
     def result(self) -> dict[str, Any]:
         return {
-            "winner": self._pid_for(self.state.winner),
+            "winner": self.winner if self.winner is not None else self._pid_for(self.state.winner),
             "draw": False,
-            "reason": "first_to_win_score",
+            "reason": self.end_reason or "first_to_win_score",
         }
 
     def _pid_for(self, side: str | None) -> str | None:

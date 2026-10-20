@@ -38,11 +38,16 @@ const roomWaitingEl = byId("room-waiting") as HTMLSpanElement;
 const roomMetaEl = byId("room-meta") as HTMLSpanElement;
 const toastEl = byId("toast") as HTMLDivElement;
 const joinCodeInput = byId("join-code") as HTMLInputElement;
+const roomIdEl = byId("room-id") as HTMLElement | null;
 
 // --- persistence ------------------------------------------------------------
 function read<T>(key: string): T | null {
-  const raw = localStorage.getItem(key);
-  return raw ? (JSON.parse(raw) as T) : null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
 }
 function write(key: string, value: string): void {
   localStorage.setItem(key, JSON.stringify(value));
@@ -97,10 +102,10 @@ function turnText(snapshot: GameSnapshot): string {
 }
 
 function didWin(r: { winner: string | null; draw: boolean }): boolean {
-  if (r.draw) return false;
-  if (["chess", "pong", "snake"].includes(gameId())) return r.winner === state.playerId;
-  // tic-tac-toe reports a symbol; quiz reports a player id
-  return r.winner === myRole(state.snapshot ?? {});
+  if (r.draw || !r.winner) return false;
+  if (["chess", "pong", "snake", "quiz"].includes(gameId())) return r.winner === state.playerId;
+  // tic-tac-toe reports a symbol (X/O) or a player_id on forfeit/abandon
+  return r.winner === state.playerId || r.winner === myRole(state.snapshot ?? {});
 }
 
 function outcomeText(): string {
@@ -148,6 +153,7 @@ function render(): void {
   if (state.screen === "game" && state.snapshot) {
     lobbyEl.style.display = "none";
     gameEl.style.display = "block";
+    if (roomIdEl) roomIdEl.textContent = state.room?.id ?? state.sessionId?.slice(0, 8) ?? "—";
     const role = roleText();
     mySymEl.textContent = role.label;
     mySymEl.classList.toggle("has-dot", Boolean(role.color));

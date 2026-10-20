@@ -15,6 +15,15 @@ def first_player_plays_x(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("mp.games.tictactoe.session._choose_x", lambda player_ids: player_ids[0])
 
 
+@pytest.fixture(autouse=True)
+def pong_deterministic_sides(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pong picks sides at random in production; tests need p1=L, p2=R."""
+    monkeypatch.setattr(
+        "mp.games.pong.session._choose_sides",
+        lambda player_ids: {player_ids[0]: "L", player_ids[1]: "R"},
+    )
+
+
 def _client(settings: Settings) -> TestClient:
     return TestClient(create_app(settings))
 

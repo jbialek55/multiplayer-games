@@ -101,13 +101,6 @@ def step(state: State, dir_l: int, dir_r: int, dt: float) -> State:
         score_l += 1
         return _serve(state, -1, score_l=score_l, score_r=score_r)
 
-    if score_l >= WIN_SCORE:
-        winner = LEFT
-    elif score_r >= WIN_SCORE:
-        winner = RIGHT
-    else:
-        winner = None
-
     return State(bx, by, vx, vy, pad_l, pad_r, score_l, score_r, winner, rally)
 
 
