@@ -34,7 +34,8 @@ from mp.protocol.messages import Envelope, ErrorPayload, MessageType
 from mp.storage import Store
 from mp.transport.connection import Client
 from mp.transport.manager import ConnectionRegistry
-
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 log = logging.getLogger("mp")
 logging.basicConfig(level=logging.INFO)
 # Types that mutate cross-cutting state and are therefore rate-limited.
@@ -176,7 +177,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     if peer is not None:
                         await _deliver_to(peer, d)
             log.info("ws close conn=%s", client.connection_id)
-
+    static_dir = Path(__file__).resolve().parents[3] / "client" / "dist"
+    if static_dir.is_dir():
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
     return app
 
 
